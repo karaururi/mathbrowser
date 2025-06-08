@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>TeX数式ビューア + 計算過程</title>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 2em;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      font-family: monospace;
+    }
+    #output, #solution {
+      white-space: pre-wrap;
+      border: 1px solid #ccc;
+      padding: 1em;
+      margin-top: 1em;
+      background: #f9f9f9;
+    }
+    button {
+      margin-top: 1em;
+      padding: 0.5em 1em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>TeX数式ビューア + 計算過程出力</h1>
+
+<textarea id="input" placeholder="数式を含むテキストを入力...（例: $$x^2 - 4 = 0$$）"></textarea><br>
+<button onclick="renderText()">表示</button>
+<button onclick="getSolution()">計算過程を表示（Gemini）</button>
+
+<h3>整形表示</h3>
+<div id="output"></div>
+
+<h3>計算過程（Gemini API）</h3>
+<div id="solution">ここに計算過程が表示されます</div>
+
+<script>
+  const apiKey = "YOUR_GEMINI_API_KEY"; // ← 必ず差し替えてください！
+
+  function renderText() {
+    const input = document.getElementById("input").value;
+    const output = document.getElementById("output");
+    output.innerText = input;
+    MathJax.typesetPromise([output]);
+  }
+
+  async function getSolution() {
+    const input = document.getElementById("input").value;
+    const solutionBox = document.getElementById("solution");
+    solutionBox.innerText = "Gemini に問い合わせ中...";
+
+    const prompt = `以下の数式を人間が理解できるように、ステップバイステップで計算過程を説明してください。\n\n${input}`;
+
+    try {
+      const response = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          })
+        }
+      );
+      const data = await response.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "解釈できませんでした。";
+      solutionBox.innerText = text;
+    } catch (e) {
+      console.error(e);
+      solutionBox.innerText = "エラーが発生しました。APIキーや通信状況を確認してください。";
+    }
+  }
+</script>
+
+</body>
+</html>
